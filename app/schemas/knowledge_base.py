@@ -150,7 +150,7 @@ class FAQListResponse(BaseModel):
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
     knowledge_base_ids: Optional[List[int]] = None
-    search_type: str = Field(default="all", regex="^(all|documents|faqs)$")
+    search_type: str = Field(default="all", pattern="^(all|documents|faqs)$")
     limit: int = Field(default=10, ge=1, le=50)
 
 

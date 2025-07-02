@@ -97,7 +97,7 @@ class Call(Base):
     duration = Column(Integer)  # in seconds
     recording_url = Column(String(500))
     transcript = Column(Text)
-    metadata = Column(JSON)  # Additional call metadata
+    call_metadata = Column(JSON)  # Additional call metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -133,7 +133,7 @@ class Document(Base):
     file_path = Column(String(500))  # For uploaded files
     file_type = Column(String(50))  # pdf, docx, txt, etc.
     file_size = Column(Integer)  # in bytes
-    metadata = Column(JSON)  # Additional document metadata
+    document_metadata = Column(JSON)  # Additional document metadata
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -1,15 +1,20 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-sqlalchemy==2.0.23
-alembic==1.12.1
-# psycopg2-binary==2.9.9  # PostgreSQL driver - uncomment if using PostgreSQL
-python-dotenv==1.0.0
-pydantic==2.5.0
-livekit-agents==0.1.0
-livekit==0.1.0
-python-multipart==0.0.6
-httpx==0.25.2
-redis==5.0.1
-celery==5.3.4
-pytest==7.4.3
-pytest-asyncio==0.21.1 
+# fastapi==0.104.1
+# uvicorn==0.24.0
+# sqlalchemy==2.0.23
+# alembic==1.12.1
+# # psycopg2-binary==2.9.9  # PostgreSQL driver - uncomment if using PostgreSQL
+# python-dotenv==1.0.0
+# pydantic==2.5.0
+# livekit-agents==0.1.0
+# livekit==0.1.0
+# python-multipart==0.0.6
+# httpx==0.25.2
+# redis==5.0.1
+# celery==5.3.4
+# pytest==7.4.3
+# pytest-asyncio==0.21.1 
+
+
+
+livekit-agents[openai]~=1.0
+livekit-plugins-noise-cancellation~=0.2
