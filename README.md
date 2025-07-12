@@ -430,17 +430,333 @@ function_registry.register_function("my_custom_function", my_custom_function)
 
 ### Docker Deployment
 
+The Voice Agent Platform can be easily deployed using Docker for consistent environments across development and production.
+
+#### Quick Start with Docker
+
+```bash
+# Build and run with Docker Compose (Recommended)
+docker-compose up --build
+
+# Or build and run manually
+docker build -t voice-agent-platform .
+docker run -p 8000:8000 --env-file .env voice-agent-platform
+```
+
+#### Dockerfile
+
 ```dockerfile
+# Use Python 3.9 slim image
 FROM python:3.9-slim
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+# Copy Poetry configuration files
+COPY pyproject.toml poetry.lock* ./
+
+# Configure Poetry to not create virtual environment in container
+RUN poetry config virtualenvs.create false
+
+# Install dependencies
+RUN poetry install --no-dev --no-interaction --no-ansi
+
+# Copy application code
 COPY . .
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+
+# Expose port
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+#### Docker Compose Configuration
+
+Create a `docker-compose.yml` file for easy deployment:
+
+```yaml
+version: '3.8'
+
+services:
+  voice-agent-platform:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./voice_agent.db
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=False
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Optional: Add PostgreSQL for production database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=voice_agent
+      - POSTGRES_USER=voice_agent
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
+```
+
+#### Environment Configuration
+
+Create a `.env` file for Docker deployment:
+
+```env
+# LiveKit Configuration
+LIVEKIT_URL=wss://your-livekit-server.com
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+SIP_OUTBOUND_TRUNK_ID=your_sip_trunk_id
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key
+
+# Database Configuration (for PostgreSQL)
+POSTGRES_PASSWORD=your_secure_password
+DATABASE_URL=postgresql://voice_agent:your_secure_password@postgres:5432/voice_agent
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=False
+LOG_LEVEL=INFO
+```
+
+#### Production Docker Deployment
+
+For production deployment, use the following setup:
+
+1. **Build the production image:**
+```bash
+docker build -t voice-agent-platform:latest .
+```
+
+2. **Create a production docker-compose.yml:**
+```yaml
+version: '3.8'
+
+services:
+  voice-agent-platform:
+    image: voice-agent-platform:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://voice_agent:${POSTGRES_PASSWORD}@postgres:5432/voice_agent
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=False
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - voice-agent-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=voice_agent
+      - POSTGRES_USER=voice_agent
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - voice-agent-network
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    networks:
+      - voice-agent-network
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - voice-agent-platform
+    restart: unless-stopped
+    networks:
+      - voice-agent-network
+```
+
+3. **Create nginx.conf for reverse proxy:**
+```nginx
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream voice_agent {
+        server voice-agent-platform:8000;
+    }
+
+    server {
+        listen 80;
+        server_name your-domain.com;
+        return 301 https://$server_name$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        server_name your-domain.com;
+
+        ssl_certificate /etc/nginx/ssl/cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+        location / {
+            proxy_pass http://voice_agent;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+```
+
+#### Docker Deployment Commands
+
+```bash
+# Development deployment
+docker-compose up --build
+
+# Production deployment
+docker-compose -f docker-compose.prod.yml up -d
+
+# View logs
+docker-compose logs -f voice-agent-platform
+
+# Stop services
+docker-compose down
+
+# Remove volumes (careful - this deletes data)
+docker-compose down -v
+```
+
+#### Docker Best Practices
+
+1. **Security:**
+   - Use non-root user in container
+   - Keep base images updated
+   - Scan images for vulnerabilities
+   - Use secrets management for sensitive data
+
+2. **Performance:**
+   - Use multi-stage builds for smaller images
+   - Implement proper health checks
+   - Use volume mounts for persistent data
+   - Configure resource limits
+
+3. **Monitoring:**
+   - Add logging to stdout/stderr
+   - Implement health check endpoints
+   - Use Docker's built-in monitoring
+   - Set up external monitoring (Prometheus, Grafana)
+
+4. **Scaling:**
+   - Use Docker Swarm or Kubernetes for orchestration
+   - Implement load balancing
+   - Use external databases for high availability
+   - Configure auto-scaling policies
+
+#### Troubleshooting Docker Deployment
+
+```bash
+# Check container status
+docker ps
+
+# View container logs
+docker logs voice-agent-platform
+
+# Access container shell
+docker exec -it voice-agent-platform bash
+
+# Check resource usage
+docker stats
+
+# Restart services
+docker-compose restart voice-agent-platform
 ```
 
 ## 🏃‍♂️ Run Scripts
