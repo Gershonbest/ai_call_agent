@@ -1,0 +1,21 @@
+{
+  "command": "lk dispatch create",
+  "options": {
+    "new-room": true,
+    "agent-name": "outbound-caller",
+    "metadata": {
+      "phone_number": "+12092319588",
+      "transfer_to": "+2349038185240",
+      "agent_info":{
+        "name": "Adam",
+        "brand": "Plus Market"
+        },
+      "lead_info": {
+        "name":"Gershon",
+        "email": "gershon@gmail.com",
+        "registeredon":"12 May, 2015",
+        "interest":"Forex Trading"
+        }
+    }
+  }
+} 

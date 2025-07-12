@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uvicorn
 import os
+import argparse
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 from app.models.database import create_tables, get_db
@@ -12,13 +14,25 @@ from app.core.call_manager import CallManager
 # Load environment variables
 load_dotenv()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown"""
+    # Startup
+    create_tables()
+    print("Database tables created successfully")
+    yield
+    # Shutdown (if needed)
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Voice Agent API",
     description="A comprehensive API for managing voice agents, tools, and calls",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -36,13 +50,6 @@ app.include_router(tools.router, prefix="/api/v1/tools", tags=["Tools"])
 app.include_router(calls.router, prefix="/api/v1/calls", tags=["Calls"])
 app.include_router(phone_numbers.router, prefix="/api/v1/phone-numbers", tags=["Phone Numbers"])
 app.include_router(knowledge_base.router, prefix="/api/v1/knowledge-bases", tags=["Knowledge Bases"])
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database tables on startup"""
-    create_tables()
-    print("Database tables created successfully")
 
 
 @app.get("/")
@@ -70,14 +77,19 @@ async def api_health_check():
 
 def main():
     """Main function for running the application"""
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    debug = os.getenv("DEBUG", "False").lower() == "true"
+    parser = argparse.ArgumentParser(description="Voice Agent Platform")
+    parser.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"), help="Host to bind to")
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")), help="Port to bind to")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    
+    args = parser.parse_args()
+    
+    debug = args.debug or os.getenv("DEBUG", "False").lower() == "true"
     
     uvicorn.run(
         "app.main:app",
-        host=host,
-        port=port,
+        host=args.host,
+        port=args.port,
         reload=debug,
         log_level="info"
     )

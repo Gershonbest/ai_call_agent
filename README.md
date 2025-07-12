@@ -124,6 +124,18 @@ DEBUG=True
 
 #### 4. Run the Application
 
+**Option A: Using the convenient run scripts (Recommended)**
+
+```bash
+# Using the shell script (Linux/macOS)
+./run.sh
+
+# Using the Python script (Cross-platform)
+python run.py
+```
+
+**Option B: Using Poetry commands**
+
 ```bash
 # Development mode (with auto-reload)
 poetry run dev
@@ -132,32 +144,14 @@ poetry run dev
 poetry run start
 ```
 
-### Option 2: Traditional pip
-
-#### 1. Clone and Setup
+**Option C: Direct Python execution**
 
 ```bash
-git clone <repository-url>
-cd voice-agent-platform
-```
+# From project root (correct way)
+poetry run python -m app.main
 
-#### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-#### 3. Environment Configuration
-
-```bash
-cp env.example .env
-# Edit .env with your configuration (see above)
-```
-
-#### 4. Run the Application
-
-```bash
-python -m app.main
+# ❌ Don't run from inside the app directory
+# cd app && python main.py  # This will cause import errors
 ```
 
 The API will be available at `http://localhost:8000`
@@ -448,6 +442,50 @@ EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
+
+## 🏃‍♂️ Run Scripts
+
+The project includes convenient run scripts that handle common setup tasks automatically:
+
+### `run.sh` (Linux/macOS)
+A bash script that:
+- ✅ Checks if you're in the correct directory
+- ✅ Verifies Poetry is installed
+- ✅ Installs dependencies if needed
+- ✅ Creates `.env` file from template if missing
+- ✅ Runs the application with proper error handling
+
+```bash
+./run.sh
+```
+
+### `run.py` (Cross-platform)
+A Python script that provides the same functionality but works on all platforms:
+
+```bash
+python run.py
+```
+
+### What the scripts do:
+1. **Environment Check**: Verify you're in the project root directory
+2. **Dependency Check**: Ensure Poetry and virtual environment are set up
+3. **Configuration Check**: Create `.env` file from template if missing
+4. **Application Launch**: Start the server with proper error handling
+5. **User Feedback**: Provide colored output and helpful messages
+
+### Benefits:
+- 🎯 **No more import errors**: Always runs from the correct directory
+- 🔧 **Automatic setup**: Handles common configuration issues
+- 🌈 **User-friendly**: Clear, colored output with helpful messages
+- 🛡️ **Error handling**: Graceful handling of common issues
+- 🔄 **Cross-platform**: Python script works on Windows, macOS, and Linux
+
+### Troubleshooting:
+If you encounter issues:
+1. Make sure you're in the project root directory
+2. Ensure Poetry is installed: `curl -sSL https://install.python-poetry.org | python3 -`
+3. Check that all environment variables are set in `.env`
+4. Try running `poetry install` manually if dependencies are missing
 
 ## 🤝 Contributing
 

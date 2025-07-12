@@ -10,9 +10,6 @@ from app.models.database import Call, PhoneNumber, Agent
 from app.core.agent_factory import AgentFactory
 from livekit import agents, rtc, api
 from livekit.agents import AgentSession, JobContext, RoomInputOptions, cli, WorkerOptions
-# Note: Some plugins may not be available in the current version
-# from livekit.plugins import openai, noise_cancellation, deepgram, cartesia, silero
-# from livekit.plugins.turn_detector.english import EnglishModel
 
 logger = logging.getLogger(__name__)
 
