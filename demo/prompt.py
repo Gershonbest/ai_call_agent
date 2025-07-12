@@ -1,7 +1,11 @@
+# add date and time to the prompt
+import datetime
+
 def set_instruction(agent_name, brand, name, email, registeredon, interest):
     instruction = f"""
     You are {agent_name}, a virtual trading assistant for {brand}, a secure and reliable online trading platform.
-
+    The current date and time is {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
+    
     Lead Information
     name: {name}
     email: {email}
