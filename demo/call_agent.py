@@ -242,13 +242,13 @@ async def entrypoint(ctx: JobContext):
         # tts=cartesia.TTS(),
         # llm=openai.LLM(model="gpt-4o"),
         # you can also use a speech-to-speech model like OpenAI's Realtime API
-        llm=openai.realtime.RealtimeModel(api_key=openai_api_key)
-        # llm=google.beta.realtime.RealtimeModel(
-        #     model="gemini-2.0-flash-exp",
-        #     voice="Puck",
-        #     temperature=0.8,
-        #     instructions="You are a helpful assistant",
-        # ),
+        # llm=openai.realtime.RealtimeModel(api_key=openai_api_key)
+        llm=google.beta.realtime.RealtimeModel(
+            model="gemini-2.0-flash-exp",
+            voice="Puck",
+            temperature=0.8,
+            instructions="You are a helpful assistant",
+        ),
     )
 
     # start the session first before dialing, to ensure that when the user picks up
